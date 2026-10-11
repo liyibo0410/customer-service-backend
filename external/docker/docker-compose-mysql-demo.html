@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>docker compose 效果演示 · MySQL 8.4</title>
+<style>
+:root{
+  --bg:#081226; --card:#0e1f42; --card2:#11264f; --line:rgba(96,165,250,.16);
+  --cyan:#38bdf8; --teal:#2dd4bf; --green:#34d399; --yellow:#fbbf24; --red:#f87171;
+  --txt:#dfe9f7; --dim:#8ea3c0; --dim2:#62789d;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;
+  background:radial-gradient(1100px 700px at 75% -10%,#14306b 0%,var(--bg) 55%) fixed;
+  color:var(--txt); min-width:1120px; padding:24px 34px 36px;
+}
+/* ===== header ===== */
+.hd{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+.logo{width:46px;height:46px;border-radius:13px;background:linear-gradient(135deg,#1d4ed8,#0891b2);display:flex;align-items:center;justify-content:center;font-size:23px;box-shadow:0 6px 20px rgba(29,78,216,.35);flex:none}
+.hd h1{font-size:21px;font-weight:700;letter-spacing:.5px}
+.hd .sub{font-size:12.5px;color:var(--dim);margin-top:3px}
+.badges{margin-left:auto;display:flex;gap:8px}
+.badge{font-size:11.5px;padding:5px 12px;border-radius:999px;border:1px solid var(--line);background:rgba(56,189,248,.08);color:var(--cyan);white-space:nowrap}
+.badge.green{color:var(--green);border-color:rgba(52,211,153,.3);background:rgba(52,211,153,.08)}
+/* ===== main grid ===== */
+.grid{display:grid;grid-template-columns:1.35fr 1fr;gap:16px;align-items:start}
+.card{background:linear-gradient(180deg,var(--card),#0b1a38);border:1px solid var(--line);border-radius:16px;padding:14px 16px}
+/* ===== stage ===== */
+.stage{position:relative;overflow:hidden}
+.stage-tag{font-size:11px;color:var(--dim2);letter-spacing:2px;margin:2px 4px 10px}
+.stage-in{position:relative;height:400px;width:100%}
+.lns{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.ln{stroke:rgba(255,255,255,.13);stroke-width:1.6;stroke-dasharray:4 5;display:none}
+.pnode{fill:#33415e;display:none}
+/* 线状态 */
+body.s1 .ln{display:block}
+body.s3 .ln-b{display:block;stroke:var(--yellow);filter:drop-shadow(0 0 3px rgba(251,191,36,.6))}
+body.s4 .ln-a,body.s5 .ln-a{display:block;stroke:var(--cyan);filter:drop-shadow(0 0 3px rgba(56,189,248,.6))}
+body.s5 .ln-c{display:block;stroke:var(--green);filter:drop-shadow(0 0 3px rgba(52,211,153,.6))}
+body.s6 .ln-r{display:block;stroke:var(--green);filter:drop-shadow(0 0 3px rgba(52,211,153,.6))}
+body.s6 .ln-a{display:block;stroke:var(--cyan);filter:drop-shadow(0 0 3px rgba(56,189,248,.6))}
+body.s4 .pnode,body.s5 .pnode,body.s6 .pnode{display:block;animation:pulseNode 1.6s ease-in-out infinite}
+body.s4 .pn-h,body.s5 .pn-h,body.s6 .pn-h{fill:var(--cyan)}
+body.s4 .pn-c,body.s5 .pn-c,body.s6 .pn-c{fill:var(--green)}
+@keyframes pulseNode{0%,100%{opacity:1}50%{opacity:.55}}
+/* 数据包 */
+.pkt{position:absolute;width:9px;height:9px;margin:-4.5px 0 0 -4.5px;border-radius:50%;display:none;z-index:3}
+.pkta{background:var(--cyan);box-shadow:0 0 8px rgba(56,189,248,.9)}
+.pktc{background:var(--green);box-shadow:0 0 8px rgba(52,211,153,.9)}
+.pktr{background:var(--green);box-shadow:0 0 8px rgba(52,211,153,.9)}
+.pktb{background:var(--yellow);box-shadow:0 0 8px rgba(251,191,36,.9)}
+body.s4 .pkta,body.s5 .pkta{display:block;animation:movA 1.6s linear infinite}
+body.s5 .pktc{display:block;animation:movC 1.2s linear infinite}
+body.s6 .pktr{display:block;animation:movR 1.2s linear infinite}
+body.s6 .pkta{display:none}
+body.s3 .pktb{display:block;animation:movB 1.3s linear infinite}
+@keyframes movA{from{left:22.3%;top:50%}to{left:42.3%;top:50%}}
+@keyframes movC{from{left:56.5%;top:57.5%}to{left:56.5%;top:67%}}
+@keyframes movR{from{left:56.5%;top:67%}to{left:56.5%;top:57.5%}}
+@keyframes movB{from{left:40%;top:27%}to{left:42.3%;top:27%}}
+/* 镜像飞入 */
+.imgbox{position:absolute;left:42.3%;top:12.5%;transform:translate(-50%,-50%);font-size:12.5px;padding:7px 13px;border-radius:10px;background:linear-gradient(135deg,#0ea5e9,#2563eb);border:1px solid rgba(125,211,252,.5);box-shadow:0 6px 16px rgba(14,165,233,.35);opacity:0;white-space:nowrap;z-index:2}
+body.s1 .imgbox{animation:flyIn 2.6s ease forwards}
+@keyframes flyIn{
+  0%{opacity:0;transform:translate(calc(50% + 220px),calc(-50% - 150px)) scale(1.35)}
+  30%{opacity:1;transform:translate(calc(50% + 40px),calc(-50% - 30px)) scale(1.1)}
+  70%{opacity:1;transform:translate(-50%,-50%) scale(.95)}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(.9)}
+}
+/* ===== 客户端 App ===== */
+.app{position:absolute;left:1.3%;top:38.7%;width:21%;height:22.5%;border:1px solid var(--line);border-radius:12px;background:linear-gradient(180deg,#132a58,#0f2247);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;opacity:0;z-index:2}
+body.s4 .app,body.s5 .app,body.s6 .app{animation:fadeUp .6s forwards}
+.app-ic{font-size:19px}
+.app-t{font-size:12px;font-weight:700}
+.app-s{font-size:10px;color:var(--dim)}
+.app-conn{margin-top:3px;font-size:10px;color:var(--cyan);background:rgba(56,189,248,.1);border:1px solid rgba(56,189,248,.25);padding:2px 8px;border-radius:999px;opacity:0}
+body.s4 .app-conn,body.s5 .app-conn,body.s6 .app-conn{animation:fadeUp .5s .5s forwards}
+/* ===== 宿主机 ===== */
+.hostbox{position:absolute;left:29%;top:3.7%;width:69.3%;height:92.5%;border:1.5px solid rgba(96,165,250,.28);border-radius:14px;background:rgba(10,24,48,.55);z-index:1}
+.host-tag{position:absolute;top:-9px;left:14px;font-size:10px;letter-spacing:1.5px;color:var(--dim);background:#0e1f42;padding:2px 10px;border-radius:999px;border:1px solid var(--line)}
+/* ===== 容器 ===== */
+.container-box{position:absolute;left:42.3%;top:12.5%;width:48.4%;height:45%;border:1.5px dashed rgba(96,165,250,.4);border-radius:12px;background:rgba(17,38,79,.75);opacity:.4;transition:opacity .5s,border-color .5s;z-index:2;overflow:hidden}
+body.s2 .container-box{opacity:1;border:1.5px solid rgba(56,189,248,.65);animation:pop .5s ease}
+body.s3 .container-box{border-color:rgba(251,191,36,.7)}
+body.s4 .container-box,body.s5 .container-box{border-color:rgba(52,211,153,.65)}
+body.s6 .container-box{animation:boxLife 6.4s linear forwards}
+@keyframes pop{0%{transform:scale(.94)}100%{transform:scale(1)}}
+@keyframes boxLife{
+  0%{opacity:1;border-color:rgba(52,211,153,.65);transform:scale(1)}
+  18%{opacity:1;border-color:rgba(52,211,153,.65)}
+  20%{opacity:0;transform:scale(.85)}
+  38%{opacity:0}
+  40%{opacity:1;transform:scale(1);border-color:rgba(251,191,36,.8)}
+  52%{border-color:rgba(52,211,153,.65)}
+  60%{border-color:var(--red);box-shadow:0 0 16px rgba(248,113,113,.45)}
+  72%{border-color:var(--yellow)}
+  84%{border-color:rgba(52,211,153,.65)}
+  100%{opacity:1;border-color:rgba(52,211,153,.65)}
+}
+.cbar{display:flex;align-items:center;gap:7px;padding:7px 10px;background:rgba(8,18,38,.6);border-bottom:1px solid var(--line);font-size:11.5px}
+.status-dot{width:9px;height:9px;border-radius:50%;background:var(--yellow);flex:none;box-shadow:0 0 6px rgba(251,191,36,.7)}
+body.s2 .status-dot{animation:blinkY 1s ease-in-out infinite}
+body.s4 .status-dot,body.s5 .status-dot{background:var(--green);box-shadow:0 0 7px rgba(52,211,153,.8)}
+body.s6 .status-dot{animation:dotCycle 6.4s linear forwards}
+@keyframes blinkY{0%,100%{opacity:1}50%{opacity:.35}}
+@keyframes dotCycle{
+  0%,18%{background:var(--green);box-shadow:0 0 7px rgba(52,211,153,.8)}
+  20%,38%{background:transparent;box-shadow:none}
+  40%,50%{background:var(--yellow);box-shadow:0 0 7px rgba(251,191,36,.8)}
+  52%,58%{background:var(--green);box-shadow:0 0 7px rgba(52,211,153,.8)}
+  60%,70%{background:var(--red);box-shadow:0 0 10px rgba(248,113,113,.9)}
+  72%,82%{background:var(--yellow);box-shadow:0 0 7px rgba(251,191,36,.8)}
+  84%,100%{background:var(--green);box-shadow:0 0 7px rgba(52,211,153,.8)}
+}
+.cname{font-weight:700;color:#bfdbfe;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cver{margin-left:auto;font-size:9.5px;padding:1px 7px;border-radius:999px;background:rgba(56,189,248,.12);color:var(--cyan);flex:none}
+.cbody{display:flex;gap:8px;padding:8px 10px;height:calc(100% - 31px)}
+.cleft{flex:1;display:flex;flex-direction:column;gap:6px;min-width:0}
+.proc{font-size:10.5px;padding:5px 8px;border-radius:8px;background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.25);white-space:nowrap;overflow:hidden}
+.st{display:none}
+.st-starting{color:var(--yellow)}
+body.s2 .st-starting{display:inline}
+.st-running{color:var(--green)}
+body.s4 .st-running,body.s5 .st-running{display:inline}
+.st-crash{color:var(--red)}
+body.s6 .st-crash{animation:crashTxt 6.4s linear forwards}
+body.s6 .st-starting,body.s6 .st-running{display:none}
+@keyframes crashTxt{0%,58%{opacity:0}60%{opacity:1}84%{opacity:1}100%{opacity:0}}
+.envs{display:flex;flex-direction:column;gap:4px}
+.env-badge{font-size:9.5px;padding:3px 7px;border-radius:7px;background:rgba(96,165,250,.09);border:1px solid rgba(96,165,250,.22);color:#bcd3f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:0;font-family:Consolas,"Courier New",monospace}
+body.s2 .env-badge{animation:fadeUp .45s forwards}
+body.s2 .e2{animation-delay:.35s}body.s2 .e3{animation-delay:.7s}
+.cright{width:38%;display:flex;flex-direction:column;gap:6px}
+.mount{font-size:9px;color:var(--dim);padding:4px 6px;border-radius:7px;border:1px dashed rgba(96,165,250,.25);background:rgba(8,18,38,.5)}
+.mount b{color:#93c5fd;font-weight:600}
+.script-item{font-size:9.5px;color:var(--yellow);margin-top:3px;opacity:0}
+body.s3 .script-item{animation:fadeUp .5s .6s forwards}
+body.s4 .script-item,body.s5 .script-item,body.s6 .script-item{opacity:.55}
+/* ===== initdb 目录 ===== */
+.initdb-box{position:absolute;left:31.6%;top:15%;width:8.4%;height:24%;border:1.5px dashed rgba(251,191,36,.45);border-radius:10px;background:rgba(251,191,36,.06);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;opacity:0;z-index:2}
+body.s3 .initdb-box{animation:fadeUp .5s forwards}
+body.s4 .initdb-box,body.s5 .initdb-box,body.s6 .initdb-box{opacity:.8}
+.idb-t{font-size:9px;font-weight:700;color:var(--yellow);text-align:center;line-height:1.4;word-break:break-all;padding:0 3px}
+.idb-s{font-size:8.5px;color:var(--dim);text-align:center;line-height:1.5}
+/* ===== 卷 ===== */
+.vol-box{position:absolute;left:42.3%;top:67%;width:33.9%;height:23%;border:1.5px solid rgba(52,211,153,.4);border-radius:12px;background:rgba(52,211,153,.05);z-index:2;transition:box-shadow .6s}
+body.s5 .vol-box{box-shadow:0 0 18px rgba(52,211,153,.22)}
+.vol-head{position:absolute;top:-9px;left:10px;font-size:10px;font-weight:700;color:var(--green);background:#0b1a38;padding:2px 9px;border-radius:999px;border:1px solid rgba(52,211,153,.3);white-space:nowrap}
+.vol-head span{font-weight:400;color:var(--dim);font-size:8.5px}
+.vol-path{position:absolute;top:14px;left:12px;font-size:9px;color:var(--dim);font-family:Consolas,"Courier New",monospace}
+.vol-fill{position:absolute;left:12px;right:12px;bottom:26px;height:30px;display:flex;flex-direction:column;gap:3px;justify-content:flex-end}
+.vol-bar{height:0;border-radius:3px;background:linear-gradient(90deg,#0ea5e9,#2dd4bf);transition:height 1.3s ease;box-shadow:0 0 6px rgba(45,212,191,.35)}
+body.s5 .vol-bar{height:100%}
+body.s5 .v2{transition-delay:.3s}body.s5 .v3{transition-delay:.6s}
+.v1{width:92%}.v2{width:68%}.v3{width:47%}
+.vol-rows{position:absolute;bottom:6px;left:12px;font-size:9px;color:var(--green);opacity:0}
+body.s5 .vol-rows,body.s6 .vol-rows{animation:fadeUp .5s 1.2s forwards}
+/* ===== 端口标签 ===== */
+.port-tag{position:absolute;left:29%;top:50%;transform:translate(-50%,-100%);font-size:9.5px;color:var(--cyan);background:rgba(56,189,248,.12);border:1px solid rgba(56,189,248,.3);padding:1px 6px;border-radius:6px;opacity:0;z-index:3;white-space:nowrap}
+.map-tag{position:absolute;left:36%;top:43.5%;transform:translate(-50%,-50%);font-size:9.5px;color:#bae6fd;background:rgba(8,18,38,.85);border:1px solid rgba(56,189,248,.35);padding:1px 7px;border-radius:999px;opacity:0;z-index:3;white-space:nowrap}
+body.s4 .port-tag,body.s5 .port-tag,body.s6 .port-tag{animation:fadeUp .5s .8s forwards}
+body.s4 .map-tag,body.s5 .map-tag,body.s6 .map-tag{animation:fadeUp .5s 1s forwards}
+@keyframes fadeUp{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+/* ===== 右侧面板 ===== */
+.panel .p-step{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.step-badge{font-size:20px;font-weight:800;background:linear-gradient(135deg,#38bdf8,#2dd4bf);-webkit-background-clip:text;background-clip:text;color:transparent}
+.step-no{font-size:11px;color:var(--dim2);letter-spacing:1px;background:rgba(96,165,250,.08);border:1px solid var(--line);padding:2px 10px;border-radius:999px}
+.p-title{font-size:16.5px;font-weight:700;margin-bottom:7px}
+.p-desc{font-size:12.5px;color:var(--dim);line-height:1.75;margin-bottom:14px}
+.p-label{font-size:10.5px;color:var(--dim2);letter-spacing:2px;margin:12px 0 7px;display:flex;align-items:center;gap:8px}
+.p-label::after{content:"";flex:1;height:1px;background:var(--line)}
+.yaml{background:#0a1733;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-family:Consolas,"Courier New",monospace;font-size:11px;line-height:1.62}
+.yl{display:flex;gap:10px;padding:0 4px;border-left:2.5px solid transparent;border-radius:4px;transition:background .35s,border-color .35s}
+.yl.hl{background:rgba(56,189,248,.13);border-left-color:var(--cyan)}
+.yn{width:17px;flex:none;color:#3d5173;text-align:right;font-size:10px;user-select:none}
+.yk{color:#7dd3fc}.yv{color:#a5b4fc}.yc{color:#52678c}.yp{color:#5f7599}
+.term{background:#060f24;border:1px solid var(--line);border-radius:10px;padding:10px 12px;height:128px;overflow-y:auto;font-family:Consolas,"Courier New",monospace;font-size:11.5px;line-height:1.85}
+.term div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.term::-webkit-scrollbar,.yaml::-webkit-scrollbar{width:5px}
+.term::-webkit-scrollbar-thumb,.yaml::-webkit-scrollbar-thumb{background:#1e3a6b;border-radius:4px}
+.t-c{color:#7dd3fc}.t-i{color:#8ea3c0}.t-ok{color:var(--green)}.t-d{color:#6b81a3}.t-err{color:var(--red)}
+/* ===== 控制条 ===== */
+.controls{display:flex;align-items:center;justify-content:space-between;margin:14px 2px 14px;padding:11px 16px;background:linear-gradient(180deg,var(--card),#0b1a38);border:1px solid var(--line);border-radius:14px}
+.dots{display:flex;align-items:center;gap:9px}
+.dot{width:11px;height:11px;border-radius:50%;border:1.5px solid #3d5173;background:transparent;cursor:pointer;padding:0;transition:all .3s;position:relative}
+.dot.act{background:var(--cyan);border-color:var(--cyan);box-shadow:0 0 9px rgba(56,189,248,.8);transform:scale(1.18)}
+.dot.done{background:var(--green);border-color:var(--green)}
+.dot:hover{transform:scale(1.2)}
+.dotlabel{margin-left:6px;font-size:11px;color:var(--dim2)}
+.btns{display:flex;gap:9px}
+button{font-family:inherit;font-size:12px;color:#cfe3f8;background:#132a58;border:1px solid rgba(96,165,250,.3);border-radius:9px;padding:7px 15px;cursor:pointer;transition:all .25s}
+button:hover{background:#1a3670;border-color:rgba(56,189,248,.55)}
+button.primary{background:linear-gradient(135deg,#1d4ed8,#0891b2);border:none;color:#fff;font-weight:700;box-shadow:0 4px 14px rgba(29,78,216,.35)}
+button.primary:hover{filter:brightness(1.15)}
+/* ===== 底部卡片 ===== */
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.mini{background:linear-gradient(180deg,var(--card),#0b1a38);border:1px solid var(--line);border-radius:14px;padding:15px 16px 13px;transition:border-color .3s,transform .3s}
+.mini:hover{border-color:rgba(56,189,248,.4);transform:translateY(-2px)}
+.mi{font-size:19px;margin-bottom:7px}
+.mt{font-size:13px;font-weight:700;margin-bottom:4px}
+.ms{font-size:10.5px;font-family:Consolas,"Courier New",monospace;color:var(--cyan);background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.2);display:inline-block;padding:2px 8px;border-radius:6px;margin-bottom:7px}
+.md{font-size:11px;color:var(--dim);line-height:1.7}
+.foot{margin-top:14px;font-size:10.5px;color:var(--dim2);text-align:center;letter-spacing:1px}
+</style>
+</head>
+<body class="s1">
+
+<header class="hd">
+  <div class="logo">🐳</div>
+  <div>
+    <h1>docker compose 效果演示</h1>
+    <div class="sub">一键启动 MySQL 8.4 · 从镜像拉取到数据持久化 · 逐步看懂每行配置产生的效果</div>
+  </div>
+  <div class="badges">
+    <span class="badge">compose.yaml</span>
+    <span class="badge green">mysql:8.4</span>
+    <span class="badge">utf8mb4</span>
+    <span class="badge">volume: mysql_data</span>
+  </div>
+</header>
+
+<main class="grid">
+  <!-- ========== 左：动画舞台 ========== -->
+  <section class="card stage">
+    <div class="stage-tag">效果动画 · 自动播放</div>
+    <div class="stage-in">
+      <!-- 连接线 -->
+      <svg class="lns" viewBox="0 0 620 400" preserveAspectRatio="none">
+        <line class="ln ln-a" x1="138" y1="200" x2="262" y2="200"/>
+        <line class="ln ln-b" x1="248" y1="108" x2="262" y2="108"/>
+        <line class="ln ln-c" x1="350" y1="230" x2="350" y2="268"/>
+        <line class="ln ln-r" x1="350" y1="268" x2="350" y2="230"/>
+        <circle class="pnode pn-h" cx="180" cy="200" r="7"/>
+        <circle class="pnode pn-c" cx="262" cy="200" r="7"/>
+      </svg>
+      <!-- 数据包 -->
+      <div class="pkt pkta"></div><div class="pkt pktc"></div><div class="pkt pktr"></div><div class="pkt pktb"></div>
+      <!-- 拉取中的镜像 -->
+      <div class="imgbox">📦 拉取镜像 mysql:8.4</div>
+      <!-- 客户端 -->
+      <div class="app">
+        <div class="app-ic">🖥️</div>
+        <div class="app-t">业务 App</div>
+        <div class="app-s">MySQL 客户端</div>
+        <div class="app-conn">localhost:3306</div>
+      </div>
+      <!-- 宿主机 -->
+      <div class="hostbox">
+        <div class="host-tag">宿主机 Host · Docker Engine</div>
+        <!-- 容器 -->
+        <div class="container-box">
+          <div class="cbar">
+            <span class="status-dot"></span>
+            <span class="cname">customer-service-mysql</span>
+            <span class="cver">mysql 8.4</span>
+          </div>
+          <div class="cbody">
+            <div class="cleft">
+              <div class="proc">🐬 mysqld
+                <span class="st st-starting">Starting…</span>
+                <span class="st st-running">Running ✔</span>
+                <span class="st st-crash">⛔ crash → 自动重启</span>
+              </div>
+              <div class="envs">
+                <div class="env-badge e1">MYSQL_ROOT_PASSWORD=itwwy123@</div>
+                <div class="env-badge e2">MYSQL_USER=itwwy</div>
+                <div class="env-badge e3">MYSQL_PASSWORD=itwwy123@</div>
+              </div>
+            </div>
+            <div class="cright">
+              <div class="mount"><b>/docker-entrypoint-initdb.d</b><div class="script-item">📜 *.sql 自动执行 ✔</div></div>
+              <div class="mount"><b>/var/lib/mysql</b> → 落盘到卷</div>
+            </div>
+          </div>
+        </div>
+        <!-- initdb 宿主机目录 -->
+        <div class="initdb-box">
+          <div class="idb-t">📁 ./mysql/initdb</div>
+          <div class="idb-s">宿主机目录<br>*.sql 脚本</div>
+        </div>
+        <!-- 数据卷 -->
+        <div class="vol-box">
+          <div class="vol-head">📦 mysql_data <span>命名卷</span></div>
+          <div class="vol-path">/var/lib/mysql</div>
+          <div class="vol-fill">
+            <div class="vol-bar v1"></div>
+            <div class="vol-bar v2"></div>
+            <div class="vol-bar v3"></div>
+          </div>
+          <div class="vol-rows">数据保留 · 3 tables / 1,024 rows</div>
+        </div>
+      </div>
+      <!-- 端口标签 -->
+      <div class="port-tag">3306</div>
+      <div class="map-tag">3306:3306</div>
+    </div>
+  </section>
+
+  <!-- ========== 右：配置对照 ========== -->
+  <aside class="card panel">
+    <div class="p-step">
+      <span class="step-badge" id="stepBadge">①</span>
+      <span class="step-no" id="stepNo">1 / 6</span>
+    </div>
+    <h2 class="p-title" id="stepTitle"></h2>
+    <p class="p-desc" id="stepDesc"></p>
+    <div class="p-label">对应配置</div>
+    <div class="yaml" id="yaml"></div>
+    <div class="p-label">运行日志</div>
+    <div class="term" id="logs"></div>
+  </aside>
+</main>
+
+<!-- ========== 控制条 ========== -->
+<div class="controls">
+  <div class="dots" id="dots"><span class="dotlabel">步骤</span></div>
+  <div class="btns">
+    <button id="bPrev">⏮ 上一步</button>
+    <button id="bPlay" class="primary">⏸ 暂停</button>
+    <button id="bNext">⏭ 下一步</button>
+    <button id="bReset">↺ 重置</button>
+  </div>
+</div>
+
+<!-- ========== 底部要点卡片 ========== -->
+<div class="cards">
+  <div class="mini"><div class="mi">🔌</div><div class="mt">端口映射</div><div class="ms">ports: "3306:3306"</div><div class="md">宿主机 3306 ↔ 容器 3306，App 用 localhost:3306 直连，无需进入容器</div></div>
+  <div class="mini"><div class="mi">🔑</div><div class="mt">账号自动注入</div><div class="ms">environment</div><div class="md">首次启动自动初始化 root 密码与 itwwy 账号，随容器一起创建</div></div>
+  <div class="mini"><div class="mi">📦</div><div class="mt">数据持久化</div><div class="ms">mysql_data:/var/lib/mysql</div><div class="md">命名卷独立于容器生命周期，删容器、重建容器数据都不丢</div></div>
+  <div class="mini"><div class="mi">🔄</div><div class="mt">自动重启</div><div class="ms">restart: unless-stopped</div><div class="md">mysqld 崩溃自动拉起；仅当手动 docker stop 时才不会重启</div></div>
+</div>
+
+<div class="foot">演示对应 compose.yaml 配置 · 容器 customer-service-mysql · 数据卷 mysql_data</div>
+
+<script>
+/* ================= 步骤数据 ================= */
+var STEPS=[
+  {hl:[2],
+   title:'① 拉取镜像 mysql:8.4',
+   desc:'docker compose up -d 启动时，Docker 按 image 配置从镜像仓库拉取 mysql:8.4 到本机，作为容器的运行环境。',
+   logs:['<span class="t-c">$ docker compose up -d</span>',
+         '<span class="t-i">[+] Pulling image mysql:8.4 ... done</span>',
+         '<span class="t-ok">✔ image mysql:8.4 saved locally</span>',
+         '<span class="t-d">镜像就绪 → 等待创建容器</span>']},
+  {hl:[3,5,6,7,8],
+   title:'② 创建容器 · 注入环境变量',
+   desc:'容器按 container_name 命名为 customer-service-mysql；environment 中三个变量注入容器内部，MySQL 首次启动时据此初始化 root 密码与 itwwy 账号。',
+   logs:['<span class="t-ok">✔ Creating container: customer-service-mysql</span>',
+         '<span class="t-d">env → MYSQL_ROOT_PASSWORD = itwwy123@</span>',
+         '<span class="t-d">env → MYSQL_USER = itwwy</span>',
+         '<span class="t-d">env → MYSQL_PASSWORD = itwwy123@</span>',
+         '<span class="t-i">[+] Container created · Starting ...</span>']},
+  {hl:[16],
+   title:'③ 首次启动 · 执行初始化脚本',
+   desc:'宿主机 ./mysql/initdb 挂载进容器 /docker-entrypoint-initdb.d。仅当数据目录为空（首次启动）时，其中的 *.sql 才会被自动执行：建库、建账号、导数据。',
+   logs:['<span class="t-i">[init] /var/lib/mysql is empty → bootstrap</span>',
+         '<span class="t-i">[init] executing /docker-entrypoint-initdb.d/*.sql</span>',
+         '<span class="t-ok">CREATE DATABASE ... ✔ OK</span>',
+         '<span class="t-ok">CREATE USER itwwy / GRANT ALL ... ✔ OK</span>',
+         '<span class="t-i">[init] done · starting mysqld ...</span>']},
+  {hl:[10,11,12,13],
+   title:'④ MySQL 就绪 · 端口对外',
+   desc:'mysqld 启动完成，ports 把宿主机 3306 映射到容器 3306 —— 外部程序直接连 localhost:3306 即可，不必进入容器；utf8mb4 参数保证中文不乱码。',
+   logs:['<span class="t-ok">mysqld: ready for connections ✔</span>',
+         '<span class="t-d">Version: 8.4.0 · Port: 3306 (TCP)</span>',
+         '<span class="t-d">mapping: 0.0.0.0:3306 → 3306/tcp ✔</span>',
+         '<span class="t-ok">character_set_server = utf8mb4 · 中文正常 ✔</span>']},
+  {hl:[15,19],
+   title:'⑤ 写入数据 · 落盘持久化',
+   desc:'应用 INSERT 的数据写入容器后，立即落盘到 mysql_data 命名卷（容器内 /var/lib/mysql）。卷独立于容器生命周期 —— 这就是“删容器不丢数据”的根本。',
+   logs:['<span class="t-c">app → INSERT INTO orders ...</span>',
+         '<span class="t-ok">Query OK, 1 row affected (0.01 sec)</span>',
+         '<span class="t-d">data written → /var/lib/mysql</span>',
+         '<span class="t-ok">flush → volume mysql_data · persisted ✔</span>']},
+  {hl:[4,15,19],
+   title:'⑥ 删容器数据不丢 · 崩溃自动重启',
+   desc:'docker compose down 删除容器，mysql_data 卷保留全部数据；重新 up 秒级恢复（且不再执行 initdb）。若 mysqld 崩溃，restart: unless-stopped 自动拉起容器（仅手动 stop 不重启）。',
+   logs:['<span class="t-c">$ docker compose down</span>',
+         '<span class="t-d">✔ container removed · volume mysql_data 保留！</span>',
+         '<span class="t-c">$ docker compose up -d</span>',
+         '<span class="t-ok">✔ data restored · 3 tables / 1,024 rows</span>',
+         '<span class="t-err">⛔ mysqld crashed → auto-restart (unless-stopped)</span>',
+         '<span class="t-ok">✔ container restarted · Running</span>']}
+];
+
+/* ================= YAML 行 ================= */
+var YAML=[
+ 'services:',
+ '  mysql:',
+ '    image: mysql:8.4',
+ '    container_name: customer-service-mysql',
+ '    restart: unless-stopped',
+ '    environment:',
+ '      MYSQL_ROOT_PASSWORD: itwwy123@',
+ '      MYSQL_USER: itwwy',
+ '      MYSQL_PASSWORD: itwwy123@',
+ '    ports:',
+ '      - "3306:3306"',
+ '    command:',
+ '      - --character-set-server=utf8mb4',
+ '      - --collation-server=utf8mb4_unicode_ci',
+ '    volumes:',
+ '      - mysql_data:/var/lib/mysql',
+ '      - ./mysql/initdb:/docker-entrypoint-initdb.d',
+ '',
+ 'volumes:',
+ '  mysql_data:'
+];
+
+/* ================= 渲染 ================= */
+var yamlEl=document.getElementById('yaml');
+YAML.forEach(function(line,i){
+  var d=document.createElement('div');d.className='yl';d.dataset.n=i;
+  var n=document.createElement('span');n.className='yn';n.textContent=(i+1);
+  var t=document.createElement('span');t.className='ytext';
+  t.innerHTML=line.replace(/^(\s*)([a-zA-Z0-9_.\-]+):/, '$1<span class="yk">$2</span>:')
+                 .replace(/(:\s*)([^\s#]+)/, '$1<span class="yv">$2</span>')
+                 .replace(/(#.*)$/, '<span class="yc"> $1</span>');
+  d.appendChild(n);d.appendChild(t);yamlEl.appendChild(d);
+});
+
+var dotsEl=document.getElementById('dots');
+for(var i=0;i<6;i++){
+  var b=document.createElement('button');b.className='dot';b.title='第 '+(i+1)+' 步';
+  (function(idx){b.onclick=function(){playing=false;updatePlayBtn();goTo(idx,false);};})(i);
+  dotsEl.appendChild(b);
+}
+
+/* ================= 播放控制 ================= */
+var cur=0, playing=true, timer=null, logToken=0;
+var BADGE=['①','②','③','④','⑤','⑥'];
+var STEP_MS=6400;
+
+function goTo(n,auto){
+  cur=Math.max(0,Math.min(5,n));
+  clearTimeout(timer);
+  document.body.className='s'+(cur+1);
+  void document.body.offsetWidth; /* 强制重排，重启动画 */
+  document.getElementById('stepBadge').textContent=BADGE[cur];
+  document.getElementById('stepNo').textContent=(cur+1)+' / 6';
+  document.getElementById('stepTitle').textContent=STEPS[cur].title;
+  document.getElementById('stepDesc').textContent=STEPS[cur].desc;
+  /* YAML 高亮 */
+  var yls=document.querySelectorAll('.yl');
+  for(var i=0;i<yls.length;i++) yls[i].classList.toggle('hl',STEPS[cur].hl.indexOf(i)>-1);
+  /* 日志逐行 */
+  var L=document.getElementById('logs');L.innerHTML='';
+  var tok=++logToken;
+  STEPS[cur].logs.forEach(function(h,i){
+    setTimeout(function(){
+      if(logToken!==tok)return;
+      var d=document.createElement('div');d.innerHTML=h;L.appendChild(d);L.scrollTop=L.scrollHeight;
+    },350+i*430);
+  });
+  /* 指示器 */
+  var ds=document.querySelectorAll('.dot');
+  for(var k=0;k<ds.length;k++){
+    ds[k].className='dot'+(k<cur?' done':k===cur?' act':'');
+  }
+  /* 自动续播 */
+  if(auto&&playing){
+    timer=setTimeout(function(){
+      if(cur<5) goTo(cur+1,true);
+      else{playing=false;updatePlayBtn();}
+    },STEP_MS);
+  }
+}
+function updatePlayBtn(){
+  document.getElementById('bPlay').textContent=playing?'⏸ 暂停':'▶ 播放';
+}
+function playToggle(){
+  if(playing){
+    playing=false;clearTimeout(timer);updatePlayBtn();
+  }else{
+    playing=true;updatePlayBtn();
+    if(cur>=5){goTo(0,true);}
+    else{timer=setTimeout(function(){if(cur<5)goTo(cur+1,true);else{playing=false;updatePlayBtn();}},STEP_MS);}
+  }
+}
+document.getElementById('bPlay').onclick=playToggle;
+document.getElementById('bPrev').onclick=function(){playing=false;updatePlayBtn();goTo(cur-1,false);};
+document.getElementById('bNext').onclick=function(){playing=false;updatePlayBtn();goTo(cur+1,false);};
+document.getElementById('bReset').onclick=function(){playing=true;updatePlayBtn();goTo(0,true);};
+
+/* 启动 */
+goTo(0,true);
+</script>
+</body>
+</html>

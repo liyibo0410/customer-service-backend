@@ -1,0 +1,7 @@
+A) _build_prompt_inputs 调用成功
+B) knowledge_intents_json 长度 = 555（旧版为 0）
+C) 解析出的意图数 = 7
+D) 首个意图 = {"id": "product_info", "description": "商品信息咨询", "requires_object": "product"}
+E) 含 requires_object 的意图 = product_info, order_info
+F) 不泄露 provider_ids: 是
+G) 关键字段齐全: 是

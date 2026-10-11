@@ -1,0 +1,213 @@
+# 【导读】system_flows.yml 定义"系统内部过场(acknowledgement)"流程，供引擎在对话状态机切换时自动触发，与业务流(user_flows.yml)分开维护；
+# 共 6 条：system_task_started / system_task_resumed / system_collect_information(通用"问一个槽位") / system_task_interrupted /
+# system_task_canceled / system_cannot_handle；不定义 slots，回复文案用 {{ context.xxx }} 引用运行时上下文，其中 system_cannot_handle 示范了"多条件 if + else 兜底"与 mode: rephrase(让 LLM 改写话术)的用法。
+flows:
+  # 系统过场流程1：告知用户"新任务已开始"，引用 context.started_flow_name(当前开始的新流程名)
+  system_task_started:
+    description: Flow for acknowledging that a new task has started
+    name: task started acknowledgement
+    steps:
+      - id: start
+        type: start
+        next: acknowledge
+
+      # action 步骤：mode: static 表示直接按 text 原样回复，不再让 LLM 改写；
+      # {{ context.started_flow_name }} 是"上下文模板变量"，运行期把 context 字典里的值代入
+      - id: acknowledge
+        type: action
+        action: action_response
+        args:
+          mode: static
+          text: "好的，我们先处理{{ context.started_flow_name }}。"
+        next: end
+
+      - id: end
+        type: end
+        next: []
+
+  # 系统过场流程2：告知用户"被暂停的任务已恢复"，引用 context.resumed_flow_name(恢复的流程名)
+  system_task_resumed:
+    description: Flow for acknowledging that a paused task has been resumed
+    name: task resumed acknowledgement
+    steps:
+      - id: start
+        type: start
+        next: acknowledge
+
+      - id: acknowledge
+        type: action
+        action: action_response
+        args:
+          mode: static
+          text: "好的，我们继续刚才的{{ context.resumed_flow_name }}。"
+        next: end
+
+      - id: end
+        type: end
+        next: []
+
+  # 系统过场流程3：通用的"向用户索要某个槽位值"——
+  # 当业务 collect 步骤需要提问但没有专门文案时，引擎就启用本流程(把该 collect 的文案放进 context.response)
+  system_collect_information:
+    description: Flow for asking the user for a slot value during a collect step
+    name: collect information
+    steps:
+      - id: start
+        type: start
+        next: ask
+
+      # 注意 args 直接写 context.response 这个"字符串引用"而非字典：运行期会被解析为 context 里携带的回复定义
+      - id: ask
+        type: action
+        action: action_response
+        args: context.response
+        next: listen
+
+      # action_listen = 哨兵动作：发出提问后停在这里"等用户回复"，收到输入后由引擎决定下一步
+      - id: listen
+        type: action
+        action: action_listen
+        next: end
+
+      - id: end
+        type: end
+        next: []
+
+  # 系统过场流程4：当前任务被打断(用户发起了新任务)，引用两个上下文变量
+  system_task_interrupted:
+    description: Flow for acknowledging that the current task has been interrupted
+    name: task interrupted acknowledgement
+    steps:
+      - id: start
+        type: start
+        next: acknowledge
+
+      # 文案同时用被暂停的流程名与刚启动的新流程名，把"先放一放再处理新任务"这件事讲清楚
+      - id: acknowledge
+        type: action
+        action: action_response
+        args:
+          mode: static
+          text: "好的，我们先把{{ context.interrupted_flow_name }}放一放，先处理{{ context.started_flow_name }}。"
+        next: end
+
+      - id: end
+        type: end
+        next: []
+
+  # 系统过场流程5：当前任务被取消
+  system_task_canceled:
+    description: Flow for acknowledging that the current task was canceled
+    name: task canceled acknowledgement
+    steps:
+      - id: start
+        type: start
+        next: acknowledge
+
+
+      - id: acknowledge
+        type: action
+        action: action_response
+        args:
+          mode: static
+          text: "好的，{{ context.canceled_flow_name }}先帮你取消。"
+        next: end
+
+      - id: end
+        type: end
+        next: []
+
+  # 系统过场流程6：助手处理不了用户请求时的统一出口，示范"多条件 if + else 兜底"分支跳转
+  system_cannot_handle:
+    description: Flow for handling requests the assistant cannot support
+    name: cannot handle request
+    steps:
+      - id: start
+        type: start
+        # next 是一个列表，引擎按顺序求值每一条边：命中第一个 if 就跳 then 的分支，都不命中才走最后的 else
+        next:
+          - if: "context.get('reason') == 'clarification_rejected'"
+            then: clarification_rejected
+          - if: "context.get('reason') == 'not_supported'"
+            then: not_supported
+          - if: "context.get('reason') == 'no_relevant_answer'"
+            then: no_relevant_answer
+          - else: ask_rephrase
+      # 分支一：澄清被用户拒绝(机器人猜错了意图) → 用 rephrase 模式让 LLM 基于 text 生成一句更自然的道歉+引导
+      - id: clarification_rejected
+        type: action
+        action: action_response
+        args:
+          # mode: rephrase 表示"text 是底稿，prompt 是改写指令"，运行期调用 LLM 按 prompt 把 text 改写得更自然
+          mode: rephrase
+          text: "看来我刚才理解偏了。你可以重新说一下你想查订单、查物流，还是申请退款吗？"
+          prompt: |
+            你是一个中文电商客服助手，语气自然、友好、简洁。
+            请基于下面的建议回复，生成一句更自然的中文回复，保持原意，不要扩写。
+            对话上下文：
+            {history}
+            用户最后一句：
+            用户：{user_message}
+            建议回复：{current_response}
+            改写后的回复：
+        next: end
+
+      # 分支二：用户请求的能力尚未接入
+      - id: not_supported
+        type: action
+        action: action_response
+        args:
+          mode: rephrase
+          text: "我理解你的意思，不过这个能力目前还没有接入。"
+          # 下面的 prompt 是给 LLM 的改写提示模板；{history}/{user_message}/{current_response}
+          # 是"模板变量"，运行时由引擎把对话历史、用户最后一句、上面的 text 代入后再让 LLM 改写
+          prompt: |
+            你是一个中文电商客服助手，语气自然、友好、简洁。
+            请基于下面的建议回复，生成一句更自然的中文回复，保持原意，不要扩写。
+            对话上下文：
+            {history}
+            用户最后一句：
+            用户：{user_message}
+            建议回复：{current_response}
+            改写后的回复：
+        next: end
+
+      # 分支三：知识库/查库没找到相关内容
+      - id: no_relevant_answer
+        type: action
+        action: action_response
+        args:
+          mode: rephrase
+          text: "我暂时没有查到合适的信息。你可以换个说法，或者告诉我更具体一点的商品或订单信息。"
+          prompt: |
+            你是一个中文电商客服助手，语气自然、友好、简洁。
+            请基于下面的建议回复，生成一句更自然的中文回复，保持原意，不要扩写。
+            对话上下文：
+            {history}
+            用户最后一句：
+            用户：{user_message}
+            建议回复：{current_response}
+            改写后的回复：
+        next: end
+
+      # else 兜底分支：上述 reason 都不匹配时的默认话术(让用户重新说清楚诉求)
+      - id: ask_rephrase
+        type: action
+        action: action_response
+        args:
+          mode: rephrase
+          text: "抱歉，我这边没有完全听明白。你可以再具体说一下你想处理什么电商问题吗？"
+          prompt: |
+            你是一个中文电商客服助手，语气自然、友好、简洁。
+            请基于下面的建议回复，生成一句更自然的中文回复，保持原意，不要扩写。
+            对话上下文：
+            {history}
+            用户最后一句：
+            用户：{user_message}
+            建议回复：{current_response}
+            改写后的回复：
+        next: end
+
+      - id: end
+        type: end
+        next: []

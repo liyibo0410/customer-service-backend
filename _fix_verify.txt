@@ -1,0 +1,15 @@
+1) KNOWLEDGE_INTENTS 载入成功，共 7 个意图
+   意图 id: product_info, order_info, refund_policy, return_policy, shipping_policy, platform_rule, general_ecommerce_info
+2) plan.turn_planner 导入成功（无循环导入）
+3) 序列化验证异常: 3 validation errors for UserMessage
+sender_id
+  Field required [type=missing, input_value={'text': '退款政策是什么'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.13/v/missing
+message_id
+  Field required [type=missing, input_value={'text': '退款政策是什么'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.13/v/missing
+type
+  Field required [type=missing, input_value={'text': '退款政策是什么'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.13/v/missing
+5) 源码中 knowledge_intents_json = "" 的旧写法: 已移除（通过）
+6) 源码中已引入 KNOWLEDGE_INTENTS: 是

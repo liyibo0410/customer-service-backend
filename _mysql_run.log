@@ -1,0 +1,11 @@
+2026-10-07T04:53:57.574794Z 0 [System] [MY-010116] [Server] D:\software\Program Files\MySQL\MySQL Server 8.0\bin\mysqld.exe (mysqld 8.0.26) starting as process 37024
+2026-10-07T04:53:57.829844Z 1 [System] [MY-013576] [InnoDB] InnoDB initialization has started.
+2026-10-07T04:53:59.293792Z 1 [System] [MY-013577] [InnoDB] InnoDB initialization has ended.
+2026-10-07T04:53:59.416147Z 0 [System] [MY-010229] [Server] Starting XA crash recovery...
+2026-10-07T04:53:59.421128Z 0 [System] [MY-010232] [Server] XA crash recovery finished.
+2026-10-07T04:53:59.502219Z 0 [Warning] [MY-013746] [Server] A deprecated TLS version TLSv1 is enabled for channel mysql_main
+2026-10-07T04:53:59.502336Z 0 [Warning] [MY-013746] [Server] A deprecated TLS version TLSv1.1 is enabled for channel mysql_main
+2026-10-07T04:53:59.511950Z 0 [Warning] [MY-010068] [Server] CA certificate ca.pem is self signed.
+2026-10-07T04:53:59.512219Z 0 [System] [MY-013602] [Server] Channel mysql_main configured to support TLS. Encrypted connections are now supported for this channel.
+2026-10-07T04:53:59.546775Z 0 [System] [MY-011323] [Server] X Plugin ready for connections. Bind-address: '::' port: 33060
+2026-10-07T04:53:59.546874Z 0 [System] [MY-010931] [Server] D:\software\Program Files\MySQL\MySQL Server 8.0\bin\mysqld.exe: ready for connections. Version: '8.0.26'  socket: ''  port: 3306  MySQL Community Server - GPL.

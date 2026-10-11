@@ -1,0 +1,49 @@
+INFO:     Started server process [40376]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:18082 (Press CTRL+C to quit)
+启动服务器...
+INFO:     127.0.0.1:58136 - "GET /health HTTP/1.1" 200 OK
+2026-10-08 08:25:07,255 INFO sqlalchemy.engine.Engine SELECT DATABASE()
+2026-10-08 08:25:07,256 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-10-08 08:25:07,258 INFO sqlalchemy.engine.Engine SELECT @@sql_mode
+2026-10-08 08:25:07,258 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-10-08 08:25:07,259 INFO sqlalchemy.engine.Engine SELECT @@lower_case_table_names
+2026-10-08 08:25:07,259 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-10-08 08:25:07,261 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-10-08 08:25:07,262 INFO sqlalchemy.engine.Engine SELECT dialogue_states.sender_id, dialogue_states.state_json 
+FROM dialogue_states 
+WHERE dialogue_states.sender_id = %s
+2026-10-08 08:25:07,262 INFO sqlalchemy.engine.Engine [generated in 0.00014s] ('u1001',)
+INFO:     127.0.0.1:58154 - "GET /api/chat/history?sender_id=u1001 HTTP/1.1" 200 OK
+2026-10-08 08:25:07,273 INFO sqlalchemy.engine.Engine ROLLBACK
+2026-10-08 08:25:09,927 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-10-08 08:25:09,928 INFO sqlalchemy.engine.Engine SELECT dialogue_states.sender_id, dialogue_states.state_json 
+FROM dialogue_states 
+WHERE dialogue_states.sender_id = %s
+2026-10-08 08:25:09,928 INFO sqlalchemy.engine.Engine [cached since 2.665s ago] ('u1001',)
+INFO:     127.0.0.1:58924 - "GET /api/chat/history?sender_id=u1001 HTTP/1.1" 200 OK
+2026-10-08 08:25:09,932 INFO sqlalchemy.engine.Engine ROLLBACK
+2026-10-08 08:25:19,785 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-10-08 08:25:19,785 INFO sqlalchemy.engine.Engine SELECT dialogue_states.sender_id, dialogue_states.state_json 
+FROM dialogue_states 
+WHERE dialogue_states.sender_id = %s
+2026-10-08 08:25:19,785 INFO sqlalchemy.engine.Engine [cached since 12.52s ago] ('u1001',)
+INFO:     127.0.0.1:55885 - "GET /api/chat/history?sender_id=u1001 HTTP/1.1" 200 OK
+2026-10-08 08:25:19,789 INFO sqlalchemy.engine.Engine ROLLBACK
+2026-10-08 08:25:26,935 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-10-08 08:25:26,935 INFO sqlalchemy.engine.Engine SELECT dialogue_states.sender_id, dialogue_states.state_json 
+FROM dialogue_states 
+WHERE dialogue_states.sender_id = %s
+2026-10-08 08:25:26,935 INFO sqlalchemy.engine.Engine [cached since 19.67s ago] ('u1001',)
+2026-10-08 08:25:39,329 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-10-08 08:25:39,329 INFO sqlalchemy.engine.Engine SELECT dialogue_states.sender_id, dialogue_states.state_json 
+FROM dialogue_states 
+WHERE dialogue_states.sender_id = %s
+2026-10-08 08:25:39,329 INFO sqlalchemy.engine.Engine [cached since 32.07s ago] ('u1001',)
+INFO:     127.0.0.1:52924 - "GET /api/chat/history?sender_id=u1001 HTTP/1.1" 200 OK
+2026-10-08 08:25:39,335 INFO sqlalchemy.engine.Engine ROLLBACK
+2026-10-08 08:25:42,988 INFO sqlalchemy.engine.Engine INSERT INTO dialogue_states (sender_id, state_json) VALUES (%s, %s) AS new ON DUPLICATE KEY UPDATE state_json = new.state_json
+2026-10-08 08:25:42,988 INFO sqlalchemy.engine.Engine [no key 0.00015s] ('u1001', '{"sender_id": "u1001", "active_task": null, "paused_tasks": [], "active_system_task": null, "focused_object": {"id": "A20260410001", "type": "order", ... (27037 characters truncated) ... \u7533\\u8bf7\\u9000\\u6b3e\\u5462\\uff1f", "object": null}]}]}], "current_session_id": "2550aa36-c95f-4cf9-8d88-fe6cb0144a82", "pending_turn": null}')
+2026-10-08 08:25:43,019 INFO sqlalchemy.engine.Engine COMMIT
+INFO:     127.0.0.1:49463 - "POST /api/chat HTTP/1.1" 200 OK

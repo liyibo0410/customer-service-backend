@@ -1,0 +1,6 @@
+2026-10-07T04:52:52.011730Z 0 [System] [MY-013169] [Server] D:\software\Program Files\MySQL\MySQL Server 8.0\bin\mysqld.exe (mysqld 8.0.26) initializing of server in progress as process 3604
+2026-10-07T04:52:52.212381Z 1 [System] [MY-013576] [InnoDB] InnoDB initialization has started.
+2026-10-07T04:52:53.019116Z 1 [System] [MY-013577] [InnoDB] InnoDB initialization has ended.
+2026-10-07T04:52:55.066385Z 0 [Warning] [MY-013746] [Server] A deprecated TLS version TLSv1 is enabled for channel mysql_main
+2026-10-07T04:52:55.066869Z 0 [Warning] [MY-013746] [Server] A deprecated TLS version TLSv1.1 is enabled for channel mysql_main
+2026-10-07T04:52:55.528507Z 6 [Warning] [MY-010453] [Server] root@localhost is created with an empty password ! Please consider switching off the --initialize-insecure option.

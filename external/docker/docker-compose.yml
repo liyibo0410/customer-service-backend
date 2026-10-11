@@ -1,0 +1,23 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: customer-service-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: itwwy123@
+      MYSQL_USER: itwwy
+      MYSQL_PASSWORD: itwwy123@
+    ports:
+      # 宿主端口用 3307：本机 3306 被另一个项目（ecommerce-operation-assistant）
+      # 的 Docker MySQL 长期占用且其 root 口令已丢失，撞端口会让两边都连不上。
+      # 容器内仍是 3306，所以中台/后端的 JDBC 无需改容器内地址，只改宿主端口。
+      - "127.0.0.1:3307:3306"
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql/initdb:/docker-entrypoint-initdb.d
+
+volumes:
+  mysql_data:

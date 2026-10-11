@@ -1,0 +1,248 @@
+# 【导读】user_flows.yml 定义 6 条"用户业务"流程：onboarding 欢迎引导 / order_status_query 查订单状态 / logistics_tracking 查物流 /
+# refund_request 申请退款 / similar_product_recommendation 相似商品推荐 / human_handoff 转人工；由 FlowLoader 与 system_flows.yml 一起加载。
+# 顶层结构为 slots(全局槽位定义) + flows(流程字典，key 即流程id)；每条流程步骤构成 start → (collect|action)* → end，文案中 {{ slots.xx }} 是槽位模板变量。
+# ========== 一、全局槽位定义 ==========
+# 槽位(slot)=对话中需要填充的变量；下面每个 key 就是槽位名(会转成 FlowSlot.name)。
+# collect 步骤负责"向用户要值"写入槽位，action 步骤负责"读槽位"生成回复。这里的 type/label/description 是给 LLM 理解用的元信息。
+slots:
+  # 订单号：查订单/查物流/退款 3 条流程都会 collect 它，所以做成全局槽位复用
+  order_number:
+    # type 声明值的类型：text 表示以纯文本字符串存储（当前版本统一按文本，未做专门解析）
+    type: text
+    # label 是面向用户的展示名
+    label: 订单号
+    # description 是语义说明，帮助 LLM 从用户话语中识别并抽取该槽位
+    description: 用户的订单号
+
+  # 订单状态：action_lookup_order_status 查库后把结果写入的槽位（由 action 填，不由 collect 向用户要）
+  order_status:
+    type: text
+    label: 订单状态
+    description: 订单当前状态
+
+  # 订单摘要：动作步骤查询后写入的补充描述
+  order_summary:
+    type: text
+    label: 订单摘要
+    description: 订单摘要信息
+
+  # 物流单号：物流查询动作写入
+  tracking_number:
+    type: text
+    label: 物流单号
+    description: 物流单号
+
+  # 物流公司：物流查询动作写入
+  logistics_company:
+    type: text
+    label: 物流公司
+    description: 物流公司名称
+
+  # 物流进度：物流查询动作写入
+  logistics_status:
+    type: text
+    label: 物流进度
+    description: 物流当前进度
+
+  # 商品ID：推荐相似商品流程需要"当前看的是哪个商品"
+  product_id:
+    type: text
+    label: 商品ID
+    description: 当前咨询商品的唯一标识
+
+  # 退款原因：退款流程里 collect 步骤向用户索要
+  refund_reason:
+    type: text
+    label: 退款原因
+    description: 申请退款的原因
+
+# ========== 二、业务流程定义 ==========
+flows:
+  # ---------------- 流程1：onboarding（欢迎引导，系统主动触发）----------------
+  onboarding:
+    name: 欢迎引导
+    description: 在聊天窗口初次打开时欢迎用户，并介绍助手可处理的电商服务。这个 flow 通常由系统主动触发。
+    steps:
+      # 入口步骤 start：唯一职责是把"下一步"指给真正干活的第一步
+      - id: start
+        type: start
+        next: respond
+
+      # action 步骤：action_response = "直接给用户发一条文本回复"，text 就是回复正文
+      - id: respond
+        type: action
+        action: action_response
+        args:
+          text: "你好，这里是 itwwy 电商助手。我可以帮你查订单状态、查物流、了解商品信息，或者提交退款申请。"
+        next: end
+
+      # 出口步骤 end：流程到此结束（next 为空列表，表示没有后续步骤）
+      - id: end
+        type: end
+        next: []
+
+  # ---------------- 流程2：order_status_query（查订单状态）----------------
+  order_status_query:
+    name: 订单状态查询
+    description: 帮用户查询订单当前的处理状态，例如待付款、待发货、已发货或已完成。
+    steps:
+      - id: start
+        type: start
+        next: ask_order_number
+
+      # collect 步骤：向用户要 order_number 这个槽位（response.text 就是要发送的提问话术）
+      - id: ask_order_number
+        type: collect
+        # slot_name 指定要填充的全局槽位名
+        slot_name: order_number
+        # response 定义询问时的回复
+        response:
+          text: "请告诉我你的订单号。"
+        next: lookup_order_status
+
+
+      # action 步骤：调用后台动作 action_lookup_order_status 去查库；
+      # 该动作从槽位读取 order_number，把查询结果写回 order_status / order_summary 两个槽位
+      - id: lookup_order_status
+        type: action
+        action: action_lookup_order_status
+        next: show_order_status
+
+      # action 步骤：用 action_response 把查到的状态展示给用户
+      - id: show_order_status
+        type: action
+        action: action_response
+        args:
+          # {{ slots.order_number }} 是"槽位模板变量"：运行时把槽位值代入花括号占位符再发送
+          text: "订单{{ slots.order_number }}当前状态是：{{ slots.order_status }}。{{ slots.order_summary }}"
+        next: end
+
+      - id: end
+        type: end
+        next: []
+
+  # ---------------- 流程3：logistics_tracking（查物流）----------------
+  logistics_tracking:
+    name: 物流查询
+    description: 帮用户查询订单物流进度、物流单号和配送公司信息。
+    steps:
+      - id: start
+        type: start
+        next: ask_order_number
+
+      # collect 步骤：物流查询同样从"订单号"入手，先复用同一个提问
+      - id: ask_order_number
+        type: collect
+        slot_name: order_number
+        response:
+          text: "请告诉我你的订单号。"
+        next: lookup_logistics
+
+      # action 步骤：查物流后台动作，结果写入 logistics_company / tracking_number / logistics_status 槽位
+      - id: lookup_logistics
+        type: action
+        action: action_lookup_logistics
+        next: show_logistics
+
+      # action 步骤：把物流信息拼成一句话回复（用到了 4 个槽位模板变量）
+      - id: show_logistics
+        type: action
+        action: action_response
+        args:
+          text: "订单{{ slots.order_number }}由{{ slots.logistics_company }}配送，物流单号是{{ slots.tracking_number }}。当前进度：{{ slots.logistics_status }}。"
+        next: end
+
+      - id: end
+        type: end
+        next: []
+
+  # ---------------- 流程4：refund_request（申请退款）----------------
+  refund_request:
+    name: 退款申请
+    description: 帮用户提交简单的退款申请，收集订单号和退款原因。
+    steps:
+      - id: start
+        type: start
+        next: ask_order_number
+
+      # collect 步骤：第一步先收集订单号
+      - id: ask_order_number
+        type: collect
+        slot_name: order_number
+        response:
+          text: "请告诉我你的订单号。"
+        next: ask_refund_reason
+
+      # collect 步骤：第二步再收集退款原因（一个流程可以有多个 collect 步骤串行收集多个槽位）
+      - id: ask_refund_reason
+        type: collect
+        slot_name: refund_reason
+        response:
+          text: "请简单说一下退款原因。"
+        next: refund_submitted
+
+      # action 步骤：订单号+原因都齐了，用 action_response 汇总告知"已提交"
+      - id: refund_submitted
+        type: action
+        action: action_response
+        args:
+          text: "好的，订单{{ slots.order_number }}的退款申请已提交，原因是：{{ slots.refund_reason }}。后续会尽快为你处理。"
+        next: end
+
+
+      - id: end
+        type: end
+        next: []
+
+  # ---------------- 流程5：similar_product_recommendation（相似商品推荐）----------------
+  similar_product_recommendation:
+    name: 相似商品推荐
+    description: 基于当前商品为用户推荐类似商品。当前版本先保留流程入口，具体推荐能力后续接入。
+    steps:
+      - id: start
+        type: start
+        # 示范了"分支跳转"的写法：next 是列表，按顺序逐条判断——
+        # 先看 if：若槽位里已有 product_id(表达式为真) 则走 then 的 respond，否则跳过看下一条
+        next:
+          - if: "slots.get('product_id')"
+            then: respond
+          # else 兜底：前面 if 都不满足时(没有商品上下文)才走 ask_product_id 先收集商品
+          - else: ask_product_id
+
+      # collect 步骤：用户没带商品上下文时，先让 TA 选中商品
+      - id: ask_product_id
+        type: collect
+        slot_name: product_id
+        response:
+          text: "请先选择一个商品，再继续咨询。"
+        next: respond
+
+      # action 步骤：执行相似商品推荐动作（此处为演示入口，动作内部能力后续再接入）
+      - id: respond
+        type: action
+        action: action_recommend_similar_products
+        next: end
+      - id: end
+        type: end
+        next: []
+
+  # ---------------- 流程6：human_handoff（转人工客服）----------------
+  human_handoff:
+    name: 人工客服
+    description: 将当前对话转交给人工客服处理。
+    steps:
+      - id: start
+        type: start
+        next: respond
+
+      # action 步骤：先用 action_response 告知用户正在转接，具体转接动作由上层系统完成
+      - id: respond
+        type: action
+        action: action_response
+        args:
+          text: "好的，我来为你转接人工客服，请稍等。"
+        next: end
+
+      - id: end
+        type: end
+        next: []

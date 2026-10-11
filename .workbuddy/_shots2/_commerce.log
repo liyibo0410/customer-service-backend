@@ -1,0 +1,14 @@
+INFO:     Will watch for changes in these directories: ['D:\\software\\PycharmProjects\\customer-service-backend\\external\\ecommerce-service-backend']
+INFO:     Uvicorn running on http://localhost:18081 (Press CTRL+C to quit)
+INFO:     Started reloader process [46136] using WatchFiles
+INFO:     Started server process [22944]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     127.0.0.1:58115 - "GET /docs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58149 - "GET /users/u1001/orders HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58922 - "GET /users/u1001/orders HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58923 - "GET /users/u1001/products HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55883 - "GET /users/u1001/orders HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55884 - "GET /users/u1001/products HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52923 - "GET /users/u1001/products HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52922 - "GET /users/u1001/orders HTTP/1.1" 200 OK

@@ -1,0 +1,19 @@
+start commerce pid=48636
+start backend pid=49132
+ok 中台18081 -> 200 (http://127.0.0.1:18081/docs)
+ok 后端18082 -> 200 (http://127.0.0.1:18082/health)
+start frontend pid=38160
+ok 前端5173 -> 200 (http://localhost:5173/)
+probe http://localhost:5173/commerce/users/u1001/orders -> 200
+probe http://localhost:5173/api/chat/history?sender_id=u1001 -> 200
+browser proxy = http://127.0.0.1:63859 (bypass localhost)
+--- console ---
+[debug] [vite] connecting...
+[debug] [vite] connected.
+[error] Failed to load resource: the server responded with a status of 404 (Not Found)
+[debug] [vite] connecting...
+[debug] [vite] connected.
+--- net >=400 / failed ---
+stop commerce
+stop backend
+stop frontend

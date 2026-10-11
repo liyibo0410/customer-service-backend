@@ -1,0 +1,13 @@
+DATABASE_URL = mysql+aiomysql://root:itwwy123%40@127.0.0.1:3306/customer_service?charset=utf8mb4
+
+--- 1) 初始化引擎 ---
+引擎创建成功（注意：此时还没真正连接）
+
+--- 2) 真正执行一次查询 ---
+连接失败：OperationalError
+  (pymysql.err.OperationalError) (2003, "Can't connect to MySQL server on '127.0.0.1'")
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+
+--- 3) dialogue_states 表是否存在 ---
+查询失败：OperationalError: (pymysql.err.OperationalError) (2003, "Can't connect to MySQL server on '127.0.0.1'")
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
