@@ -35,8 +35,15 @@ class DialogueService:
     async def process_message(self, user_message: UserMessage) -> ProcessResult:
         """
         核心处理逻辑(IO：很慢/计算:调用LLM以及执行引擎、比较慢)
-        :param user_message:
-        :return:
+
+        处理流程：
+        1. 加载对话状态（根据 sender_id 从数据库读取）
+        2. 调用引擎处理消息并生成回复
+        3. 保存更新后的对话状态到数据库
+        4. 返回处理结果
+
+        :param user_message: 用户发送的消息
+        :return: 包含机器人回复的处理结果
         """
         # 1. 通过 repository 根据 sender_id 加载对话状态(O 阶段)
         # 教:await 挂起等 IO 返回；老用户拿到历史状态，新用户得到空状态
@@ -55,8 +62,9 @@ class DialogueService:
     async def load_chat_history(self, sender_id: str) -> list[HistoryMessage]:
         """
         加载该用户的全部历史消息（session -> turns 展开成平铺消息列表，每条带 session_id）
-        :param sender_id:
-        :return:
+
+        :param sender_id: 用户唯一标识
+        :return: 平铺后的历史消息列表，每条消息带有所属的 session_id
         """
         # 1. 根据 sender_id 从数据库加载完整 DialogueState
         state: DialogueState = await self.dialogue_state_repository.load_state(sender_id)

@@ -44,9 +44,10 @@ async def chat_endpoint(
 # 辅助函数：接口请求模型 → 领域消息模型
 def _build_user_message(chat_request: ChatRequest) -> UserMessage:
     """
-    将请求数据模型转换为领域数据模型 供业务使用
-    :param chat_request:
-    :return:
+    将请求数据模型转换为领域数据模型
+
+    :param chat_request: API 层的聊天请求模型
+    :return: 领域层的用户消息模型
     """
     # 逐字段构造 UserMessage；message_id/type/object 三处是条件分支
     return UserMessage(
@@ -64,6 +65,12 @@ def _build_user_message(chat_request: ChatRequest) -> UserMessage:
 
 # 辅助函数：领域处理结果 → API 响应模型
 def _build_chat_response(process_result: ProcessResult) -> ChatResponse:
+    """
+    将领域处理结果转换为 API 响应模型
+
+    :param process_result: 领域层的处理结果
+    :return: API 层的聊天响应模型
+    """
     # 逐条把领域消息转成 ChatBotMessage，对象同样递归转换
     return ChatResponse(
         sender_id=process_result.sender_id,

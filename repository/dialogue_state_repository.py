@@ -29,8 +29,11 @@ class DialogueStateRepository:
     # 教:读操作：async 异步方法，注解标明入参和返回值类型
     async def load_state(self, sender_id: str) -> DialogueState:
         """
-        读操作
-        :return:
+        读操作：根据 sender_id 加载对话状态
+
+        :param sender_id: 用户唯一标识
+        :return: 对话状态对象；若用户不存在则返回空状态
+        :raises Exception: 数据库查询异常时抛出
         """
 
         # 1. 定义sql
@@ -43,13 +46,10 @@ class DialogueStateRepository:
 
         # 3. 获取结果
         # 教:取"零或一条"：有记录返回 Row 对象，没有则返回 None
-        sate = result.scalar_one_or_none()
+        state = result.scalar_one_or_none()
 
-        # 教:查到记录才需要反序列化，否则走下方"新用户"兜底分支
-        if sate:
-            # 将 state.state_json 反序列化成一个 DialogueState 对象
-            # 教:把库里存的 JSON 字符串解析成 Python 字典
-            state_dict = json.loads(sate.state_json)
+        if state:
+            state_dict = json.loads(state.state_json)
             # 教:pydantic 校验字典字段并构造出 DialogueState 领域对象
             return DialogueState.model_validate(state_dict)
 
@@ -57,12 +57,13 @@ class DialogueStateRepository:
         return DialogueState(sender_id=sender_id)
 
     # 教:写操作：利用"主键冲突即更新"实现有则更新、无则插入（upsert）
-    async def save_state(self, dialogue_state: DialogueState):
+    async def save_state(self, dialogue_state: DialogueState) -> None:
         """
-        写操作(插入、修改)
-        传统：插入之前先查询该条件（sender_id）对应的记录是否存在，如果不存在 则插入，反之修改
-        进阶：负责将插入sql直接升级为修改sql(主键重复机制判断)
-        :return:
+        写操作：使用 upsert 机制保存对话状态（有则更新，无则插入）
+
+        :param dialogue_state: 要保存的对话状态对象
+        :return: None
+        :raises Exception: 数据库写入异常时抛出
         """
 
         # 1. 得到DialogueState的json字符串

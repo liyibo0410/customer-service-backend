@@ -12,7 +12,8 @@ BotMessage(机器人)
 # 导入枚举工具：用来声明取值固定、可读性好的常量集合
 from enum import Enum
 # 导入 pydantic 模型基类：声明字段即可自动校验与序列化
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from typing import Optional
 
 # FocusedObject：夹带在消息里的“业务对象”（如订单卡片、商品卡片）
 class FocusedObject(BaseModel):
@@ -21,12 +22,12 @@ class FocusedObject(BaseModel):
     """
     # 必填：业务对象唯一标识（如 order_id、product_id）
     id: str                              # 对象的唯一标识（如order_id、product_id）
-    # 必填：对象种类标签（如 "order"、"product"），配合 id 锁定具体数据
-    type: str                            # 对象类型（如 "order", "product"）
-    # 展示标题（如“纯棉T恤”）；可空，省略时前端自行兜底
-    title: str | None = None             # 对象的标题（如 “纯棉T恤”）
-    # 预留扩展信息；注意可变默认值 {} 在各实例间是共享引用
-    attributes: dict = {}                # 其他额外信息
+    # 必填：对象种类标签（如 “order”、”product”），配合 id 锁定具体数据
+    type: str                            # 对象类型（如 “order”, “product”）
+    # 展示标题（如”纯棉T恤”）；可空，省略时前端自行兜底
+    title: Optional[str] = None             # 对象的标题（如 “纯棉T恤”）
+    # 预留扩展信息；使用 Field(default_factory=dict) 避免可变默认值陷阱
+    attributes: dict = Field(default_factory=dict)                # 其他额外信息
 
 # MessageType：消息“载体”枚举——内容装的是纯文本还是业务对象
 class MessageType(Enum):

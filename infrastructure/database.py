@@ -23,32 +23,33 @@ async_session: async_sessionmaker[AsyncSession] | None = None
 # 初始化
 # 教:初始化函数：应用启动时调用一次，建立全局数据库连接资源
 def init_db_engine() -> None:
-    # 教:global 声明：下面要改的是模块级全局变量，而非新建局部同名变量
+    “””
+    初始化全局数据库引擎和会话工厂
+
+    创建异步连接池引擎和会话工厂，应用启动时调用一次。
+    pool_pre_ping=True 确保连接有效性，避免使用过期连接导致错误。
+
+    :return: None
+    “””
     global engine, async_session
 
-    # 1. 创建异步引擎
-    # pool_pre_ping=True
-    # 核心作用：自动重连。它能防止程序因为拿到了“过期”或“断开”的连接而报错。
-    # 代价：每次使用连接前会多一次极微小的网络交互（发个 ping），但在现代网络环境下，这个开销几乎可以忽略不计。
-    # 建议：在生产环境中，强烈建议开启这个选项，它能大大提高程序的稳定性，让你少处理很多莫名其妙的数据库断连错误。
+    engine = create_async_engine(
+        settings.database_url,
+        echo=settings.database_echo,
+        pool_pre_ping=True
+    )
 
-    # 教:创建异步连接池引擎；echo 由配置决定（本地调试可置 true 看 SQL，生产默认 false）
-    engine = create_async_engine(settings.database_url, echo=settings.database_echo, pool_pre_ping=True)
-
-    # async_sessionmaker 批量生产数据库的工厂(为什么需要工厂，如果没有每请求一个 session、好几个配置项)
-    # 由于 每创建 一个连接对象 都要做很多配置
-
-    # 2. 创建异步session工厂
-
-    # 教:把引擎包成"会话工厂"；expire_on_commit=False 使 commit 后属性仍可读
     async_session = async_sessionmaker(engine, expire_on_commit=False)
 
 # 关闭资源
 # 教:优雅释放全局资源；这是协程函数，调用时要 await
-async def close_db_engine():
-    # 教:防呆判断：引擎还没创建（None）就不做清理，直接跳过
-    if engine is not None:    # 关闭连接
-        # 教:dispose 关闭连接池，并等待在途数据库操作自然结束
+async def close_db_engine() -> None:
+    """
+    优雅释放全局数据库资源
+
+    :return: None
+    """
+    if engine is not None:
         await engine.dispose()
 
 
